@@ -1,0 +1,95 @@
+version: '3.9'
+services:
+
+  db:
+    image: mariadb:10.7
+    expose:
+      - 3306
+    volumes:
+      - /srv/mariadb:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: virt2020*
+      MYSQL_PASSWORD: virt2020*
+      MYSQL_USER: virtualizadores
+      MYSQL_DATABASE: virtualizacion
+    restart: unless-stopped
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+
+  ghost:
+    image: ghost:alpine
+    volumes:
+      - /srv/ghost:/var/lib/ghost/content
+    ports:
+      - 8081:2368
+    environment:
+      GHOST_DATABASE_HOST: db
+      GHOST_DATABASE_PORT_NUMBER: 3306
+      GHOST_DATABASE_NAME: virtualizacion
+      GHOST_DATABASE_USER: root
+      GHOST_DATABASE_PASSWORD: virt2020*
+    depends_on:
+      - db
+    restart: unless-stopped
+  
+  drupal:
+    image: drupal:latest
+    volumes:
+      - /srv/drupal/drupal_modules:/var/www/html/modules
+      - /srv/drupal/drupal_profiles:/var/www/html/profiles
+      - /srv/drupal/drupal_themes:/var/www/html/themes
+      - /srv/drupal/drupal_sites:/var/www/html/sites
+    ports:
+      - 8082:80
+    depends_on:
+      - db
+    restart: unless-stopped
+   
+  magento:
+    image: alexcheng/magento2:latest
+    volumes:
+      - /srv/magento:/bitnami/magento
+    ports:
+      - 8083:80
+    environment:
+      MAGENTO_DATABASE_HOST: db
+      MAGENTO_DATABASE_PORT_NUMBER: 3306
+      MAGENTO_DATABASE_USER: root
+      MAGENTO_DATABASE_NAME: virtualizacion
+      MAGENTO_DATABASE_PASSWORD: virt2020*
+      ALLOW_EMPTY_PASSWORD: yes
+    depends_on:
+      - db
+    restart: unless-stopped
+   
+  portainer:
+    image: portainer/portainer-ce:latest
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /srv/portainer/etc/localtime:/etc/localtime:ro
+      - /srv/portainer/var/run/docker.sock:/var/run/docker.sock:ro
+      - /srv/portainer/portainer-data:/data
+    ports:
+      - 8084:9000
+    restart: unless-stopped
+   
+  pihole:
+    image: pihole/pihole:latest
+    ports:
+      - 8085:80/tcp
+      - 8085:80/udp
+    environment:
+      TZ: 'America/Guayaquil'
+    volumes:
+      - /srv/pihole/:/etc/pihole/
+      - /srv/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/
+    dns:
+      - 172.29.146.1
+      - 8.8.8.8
+      - 1.1.1.1
+    restart: unless-stopped
